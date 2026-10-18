@@ -142,12 +142,74 @@ let previewSongData = null;
 let progressUpdateTimer = null;
 let heartbeatTimer = null;
 
+// --- 5 Features State ---
+let currentCities = { city1: 'Delhi', city2: 'Punjab', distanceKm: 450 };
+let currentSongMemories = {};
+let sleepTimerData = null;
+let sleepTimerInterval = null;
+let isFadingOutForSleep = false;
+let originalPreFadeVolume = 80;
+let mediaRecorder = null;
+let audioChunks = [];
+let isRecordingWhisper = false;
+let whisperRecordTimeout = null;
+let isAudioDucking = false;
+let preDuckVolume = 80;
+let isHoldingHands = false;
+let holdingTimerInterval = null;
+let holdingStartTime = null;
+
 // DOM Elements
 const vinylRecord = document.getElementById('vinylRecord');
 const tonearm = document.getElementById('tonearm');
 const vinylCover = document.getElementById('vinylCover');
 const songTitle = document.getElementById('songTitle');
 const songArtist = document.getElementById('songArtist');
+
+// Feature 1: Distance & Cities Elements
+const distancePill = document.getElementById('distancePill');
+const city1Name = document.getElementById('city1Name');
+const city2Name = document.getElementById('city2Name');
+const distanceKmText = document.getElementById('distanceKmText');
+const citiesModal = document.getElementById('citiesModal');
+const inputCity1 = document.getElementById('inputCity1');
+const inputCity2 = document.getElementById('inputCity2');
+const inputDistanceKm = document.getElementById('inputDistanceKm');
+
+// Feature 4: Song Memories Elements
+const polaroidMemoryCard = document.getElementById('polaroidMemoryCard');
+const polaroidNoteText = document.getElementById('polaroidNoteText');
+const polaroidAuthorText = document.getElementById('polaroidAuthorText');
+const memoryBtn = document.getElementById('memoryBtn');
+const memoryBtnText = document.getElementById('memoryBtnText');
+const songMemoryModal = document.getElementById('songMemoryModal');
+const inputMemoryNote = document.getElementById('inputMemoryNote');
+const memorySongNameLabel = document.getElementById('memorySongNameLabel');
+const deleteMemoryBtn = document.getElementById('deleteMemoryBtn');
+
+// Feature 5: Sleep Timer Elements
+const sleepTimerBtn = document.getElementById('sleepTimerBtn');
+const sleepBadgeDot = document.getElementById('sleepBadgeDot');
+const headerSleepPill = document.getElementById('headerSleepPill');
+const headerSleepText = document.getElementById('headerSleepText');
+const sleepTimerModal = document.getElementById('sleepTimerModal');
+const activeSleepStatusBox = document.getElementById('activeSleepStatusBox');
+const activeSleepCountdownText = document.getElementById('activeSleepCountdownText');
+
+// Feature 6: Touch Together Elements
+const touchTogetherBtn = document.getElementById('touchTogetherBtn');
+const holdHandsBtnText = document.getElementById('holdHandsBtnText');
+const touchTogetherOverlay = document.getElementById('touchTogetherOverlay');
+const auraPartnerName = document.getElementById('auraPartnerName');
+const auraCounterBadge = document.getElementById('auraCounterBadge');
+
+// Feature 2: Voice Whisper Elements
+const whisperRecordBtn = document.getElementById('whisperRecordBtn');
+const whisperBtnText = document.getElementById('whisperBtnText');
+const whisperPulseRing = document.getElementById('whisperPulseRing');
+const incomingWhisperBanner = document.getElementById('incomingWhisperBanner');
+const whisperSpeakerAvatar = document.getElementById('whisperSpeakerAvatar');
+const whisperSpeakerName = document.getElementById('whisperSpeakerName');
 const addedByName = document.getElementById('addedByName');
 const waveVisualizer = document.getElementById('waveVisualizer');
 const currentTimeLabel = document.getElementById('currentTimeLabel');
@@ -221,6 +283,8 @@ window.addEventListener('DOMContentLoaded', () => {
 
   initSocket();
   setupProgressBarEvents();
+  initFeatures();
+  updateDistanceUI();
 });
 
 // --- URL & Room Management ---
@@ -274,6 +338,19 @@ function initSocket() {
     renderLikedSongs();
     updateSongMetadata(currentSong);
     updateLikeButtonState();
+
+    if (data.cities) {
+      currentCities = data.cities;
+      updateDistanceUI();
+    }
+    if (data.songMemories) {
+      currentSongMemories = data.songMemories;
+      updateMemoryUI();
+    }
+    if (data.sleepTimer) {
+      sleepTimerData = data.sleepTimer;
+      startSleepTimerCountdown();
+    }
 
     if (ytPlayerReady && currentSong) {
       loadSongIntoPlayer(currentSong.id, data.currentTime, playbackState === 'playing');
@@ -411,6 +488,69 @@ function initSocket() {
       });
     }
   }, 5000);
+
+  // Feature 1: Cities & Distance updated
+  socket.on('cities_updated', ({ cities, by }) => {
+    currentCities = cities;
+    updateDistanceUI();
+    showToast(`${by} updated cities: ${cities.city1} ↔ ${cities.city2}`);
+  });
+
+  // Feature 2: Voice Whisper received (Ducks music volume!)
+  socket.on('voice_whisper_received', (data) => {
+    handleIncomingVoiceWhisper(data);
+  });
+
+  // Feature 4: Song Memory saved or deleted
+  socket.on('song_memory_saved', ({ songId, memory, by }) => {
+    currentSongMemories[songId] = memory;
+    if (currentSong && currentSong.id === songId) {
+      updateMemoryUI();
+    }
+    showToast(`💌 ${by} added a memory for this song!`);
+  });
+
+  socket.on('song_memory_deleted', ({ songId, by }) => {
+    delete currentSongMemories[songId];
+    if (currentSong && currentSong.id === songId) {
+      updateMemoryUI();
+    }
+    showToast(`${by} removed the memory note.`);
+  });
+
+  // Feature 5: Sleep Timer updated or cancelled
+  socket.on('sleep_timer_updated', ({ sleepTimer, by }) => {
+    sleepTimerData = sleepTimer;
+    startSleepTimerCountdown();
+    showToast(`🌙 ${by} set sleep timer for ${sleepTimer.durationMinutes} mins`);
+  });
+
+  socket.on('sleep_timer_cancelled', ({ by }) => {
+    cancelLocalSleepCountdown();
+    showToast(`🌙 ${by} turned off the sleep timer`);
+  });
+
+  socket.on('sleep_timer_fired', ({ by, message }) => {
+    cancelLocalSleepCountdown();
+    showToast(message || '🌙 Sleep timer finished. Goodnight!');
+  });
+
+  // Feature 6: Touch Together (Hold Hands)
+  socket.on('partner_touch_waiting', ({ from }) => {
+    if (touchTogetherBtn) {
+      touchTogetherBtn.classList.add('waiting-partner');
+      if (holdHandsBtnText) holdHandsBtnText.innerText = `${from} is holding! 🤝`;
+    }
+    showToast(`${from} is holding hands... Touch to connect! 💖`);
+  });
+
+  socket.on('together_touch_active', () => {
+    activateTogetherAura();
+  });
+
+  socket.on('together_touch_ended', () => {
+    deactivateTogetherAura();
+  });
 }
 
 // --- YouTube IFrame API Integration ---
@@ -692,6 +832,7 @@ function updateSongMetadata(song) {
   }
 
   updateLikeButtonState();
+  updateMemoryUI();
 }
 
 // --- Timeline & Scrubber ---
@@ -1436,3 +1577,485 @@ function showToast(message) {
     setTimeout(() => toast.remove(), 300);
   }, 3200);
 }
+
+/* =========================================================
+   FEATURE 1: LIVE DISTANCE & HEARTBEAT MAP
+   ========================================================= */
+function openCitiesModal() {
+  if (inputCity1) inputCity1.value = currentCities.city1 || 'Delhi';
+  if (inputCity2) inputCity2.value = currentCities.city2 || 'Punjab';
+  if (inputDistanceKm) inputDistanceKm.value = currentCities.distanceKm || 450;
+  if (citiesModal) citiesModal.classList.remove('hidden');
+}
+
+function closeCitiesModal() {
+  if (citiesModal) citiesModal.classList.add('hidden');
+}
+
+function setPresetCities(c1, c2, km) {
+  if (inputCity1) inputCity1.value = c1;
+  if (inputCity2) inputCity2.value = c2;
+  if (inputDistanceKm) inputDistanceKm.value = km;
+}
+
+function saveCitiesSettings() {
+  const c1 = (inputCity1?.value || 'Delhi').trim();
+  const c2 = (inputCity2?.value || 'Punjab').trim();
+  const km = Math.round(Number(inputDistanceKm?.value) || 450);
+
+  currentCities = { city1: c1, city2: c2, distanceKm: km };
+  updateDistanceUI();
+  closeCitiesModal();
+
+  if (socket && socket.connected) {
+    socket.emit('update_cities', currentCities);
+  }
+  showToast(`Updated distance: ${c1} 📍 ~${km} km 📍 ${c2}`);
+}
+
+function updateDistanceUI() {
+  if (city1Name) city1Name.innerText = currentCities.city1 || 'Delhi';
+  if (city2Name) city2Name.innerText = currentCities.city2 || 'Punjab';
+  if (distanceKmText) distanceKmText.innerText = `~${currentCities.distanceKm || 450} km`;
+}
+
+/* =========================================================
+   FEATURE 4: SONG MEMORIES (DIGITAL POLAROID NOTES)
+   ========================================================= */
+function updateMemoryUI() {
+  if (!currentSong) return;
+  const memory = currentSongMemories[currentSong.id];
+  if (memory && memory.note) {
+    if (polaroidNoteText) polaroidNoteText.innerText = `"${memory.note}"`;
+    if (polaroidAuthorText) polaroidAuthorText.innerText = `— ${memory.author || 'Together'}`;
+    if (polaroidMemoryCard) polaroidMemoryCard.classList.remove('hidden');
+    if (memoryBtnText) memoryBtnText.innerText = 'Edit Memory';
+    if (memoryBtn) memoryBtn.style.background = 'var(--accent-blush)';
+  } else {
+    if (polaroidMemoryCard) polaroidMemoryCard.classList.add('hidden');
+    if (memoryBtnText) memoryBtnText.innerText = 'Song Memory';
+    if (memoryBtn) memoryBtn.style.background = '#ffffff';
+  }
+}
+
+function openSongMemoryModal() {
+  if (!currentSong) {
+    showToast('Play a song first to attach a memory note 💌');
+    return;
+  }
+  if (memorySongNameLabel) {
+    memorySongNameLabel.innerText = `Memory note for: "${currentSong.title}"`;
+  }
+  const existing = currentSongMemories[currentSong.id];
+  if (inputMemoryNote) {
+    inputMemoryNote.value = existing ? existing.note : '';
+  }
+  if (deleteMemoryBtn) {
+    if (existing) deleteMemoryBtn.classList.remove('hidden');
+    else deleteMemoryBtn.classList.add('hidden');
+  }
+  if (songMemoryModal) songMemoryModal.classList.remove('hidden');
+}
+
+function closeSongMemoryModal() {
+  if (songMemoryModal) songMemoryModal.classList.add('hidden');
+}
+
+function setMemorySuggestion(text) {
+  if (inputMemoryNote) inputMemoryNote.value = text;
+}
+
+function saveSongMemory() {
+  if (!currentSong) return;
+  const note = (inputMemoryNote?.value || '').trim();
+  if (!note) {
+    showToast('Please type a sweet memory note ❤️');
+    return;
+  }
+
+  currentSongMemories[currentSong.id] = {
+    songId: currentSong.id,
+    note,
+    author: myName,
+    timestamp: Date.now()
+  };
+
+  updateMemoryUI();
+  closeSongMemoryModal();
+
+  if (socket && socket.connected) {
+    socket.emit('save_song_memory', {
+      songId: currentSong.id,
+      note
+    });
+  }
+  showToast('Attached memory note to this song! 💌');
+}
+
+function deleteCurrentSongMemory() {
+  if (!currentSong) return;
+  delete currentSongMemories[currentSong.id];
+  updateMemoryUI();
+  closeSongMemoryModal();
+
+  if (socket && socket.connected) {
+    socket.emit('delete_song_memory', { songId: currentSong.id });
+  }
+  showToast('Memory note removed.');
+}
+
+/* =========================================================
+   FEATURE 5: SHARED SLEEP TIMER (TOGETHER FADE-OUT)
+   ========================================================= */
+function openSleepTimerModal() {
+  if (sleepTimerModal) sleepTimerModal.classList.remove('hidden');
+  updateSleepModalStatus();
+}
+
+function closeSleepTimerModal() {
+  if (sleepTimerModal) sleepTimerModal.classList.add('hidden');
+}
+
+function updateSleepModalStatus() {
+  if (!sleepTimerData) {
+    if (activeSleepStatusBox) activeSleepStatusBox.classList.add('hidden');
+    return;
+  }
+  const remainingSeconds = Math.max(0, Math.floor((sleepTimerData.endsAt - Date.now()) / 1000));
+  if (remainingSeconds > 0) {
+    if (activeSleepStatusBox) activeSleepStatusBox.classList.remove('hidden');
+    if (activeSleepCountdownText) activeSleepCountdownText.innerText = formatTime(remainingSeconds);
+  } else {
+    if (activeSleepStatusBox) activeSleepStatusBox.classList.add('hidden');
+  }
+}
+
+function setSleepTimerDuration(mins) {
+  closeSleepTimerModal();
+  if (socket && socket.connected) {
+    socket.emit('set_sleep_timer', { minutes: mins });
+  }
+  showToast(`Setting sleep timer for ${mins} minutes... 🌙`);
+}
+
+function cancelActiveSleepTimer() {
+  closeSleepTimerModal();
+  if (socket && socket.connected) {
+    socket.emit('cancel_sleep_timer');
+  }
+}
+
+function startSleepTimerCountdown() {
+  if (sleepTimerInterval) clearInterval(sleepTimerInterval);
+  if (!sleepTimerData) return;
+
+  if (headerSleepPill) headerSleepPill.classList.remove('hidden');
+  if (sleepBadgeDot) sleepBadgeDot.classList.remove('hidden');
+  isFadingOutForSleep = false;
+
+  const updateTick = () => {
+    if (!sleepTimerData) {
+      cancelLocalSleepCountdown();
+      return;
+    }
+
+    const remainingSec = Math.max(0, Math.floor((sleepTimerData.endsAt - Date.now()) / 1000));
+    const timeFormatted = formatTime(remainingSec);
+
+    if (headerSleepText) headerSleepText.innerText = timeFormatted;
+    if (activeSleepCountdownText) activeSleepCountdownText.innerText = timeFormatted;
+
+    // 60-Second Smooth Volume Duck / Fade-Out
+    if (remainingSec <= 60 && remainingSec > 0 && playbackState === 'playing') {
+      if (!isFadingOutForSleep) {
+        isFadingOutForSleep = true;
+        originalPreFadeVolume = ytPlayer && ytPlayerReady && ytPlayer.getVolume ? ytPlayer.getVolume() : localVolume;
+      }
+      const fadeFraction = remainingSec / 60;
+      const targetVol = Math.max(2, Math.round(originalPreFadeVolume * fadeFraction));
+      if (ytPlayer && ytPlayerReady && ytPlayer.setVolume) {
+        ytPlayer.setVolume(targetVol);
+      }
+    }
+
+    if (remainingSec <= 0) {
+      cancelLocalSleepCountdown();
+      if (ytPlayer && ytPlayerReady && ytPlayer.pauseVideo) {
+        ytPlayer.pauseVideo();
+        if (originalPreFadeVolume) ytPlayer.setVolume(originalPreFadeVolume);
+      }
+      playbackState = 'paused';
+      updateControlsUI();
+      showToast('Sleep timer reached. Goodnight sweethearts! 🌙✨');
+    }
+  };
+
+  updateTick();
+  sleepTimerInterval = setInterval(updateTick, 1000);
+}
+
+function cancelLocalSleepCountdown() {
+  if (sleepTimerInterval) {
+    clearInterval(sleepTimerInterval);
+    sleepTimerInterval = null;
+  }
+  sleepTimerData = null;
+  isFadingOutForSleep = false;
+  if (headerSleepPill) headerSleepPill.classList.add('hidden');
+  if (sleepBadgeDot) sleepBadgeDot.classList.add('hidden');
+  if (activeSleepStatusBox) activeSleepStatusBox.classList.add('hidden');
+
+  // Restore volume if it was ducked
+  if (ytPlayer && ytPlayerReady && originalPreFadeVolume) {
+    ytPlayer.setVolume(originalPreFadeVolume);
+  }
+}
+
+/* =========================================================
+   FEATURE 6: TOUCH TOGETHER (HOLD HANDS HAPTIC & AURA)
+   ========================================================= */
+function setupHoldHandsEvents() {
+  if (!touchTogetherBtn) return;
+
+  const onTouchStart = (e) => {
+    e.preventDefault();
+    if (isHoldingHands) return;
+    isHoldingHands = true;
+    touchTogetherBtn.classList.add('holding');
+    if (socket && socket.connected) {
+      socket.emit('touch_heart_down');
+    }
+  };
+
+  const onTouchEnd = (e) => {
+    if (e && e.type.startsWith('touch')) e.preventDefault();
+    if (!isHoldingHands) return;
+    isHoldingHands = false;
+    touchTogetherBtn.classList.remove('holding');
+    if (socket && socket.connected) {
+      socket.emit('touch_heart_up');
+    }
+    deactivateTogetherAura();
+  };
+
+  touchTogetherBtn.addEventListener('mousedown', onTouchStart);
+  touchTogetherBtn.addEventListener('touchstart', onTouchStart, { passive: false });
+
+  window.addEventListener('mouseup', onTouchEnd);
+  window.addEventListener('touchend', onTouchEnd);
+}
+
+function activateTogetherAura() {
+  if (touchTogetherOverlay) touchTogetherOverlay.classList.remove('hidden');
+  if (navigator.vibrate) {
+    try {
+      navigator.vibrate([120, 60, 120, 60, 240]);
+    } catch (e) {}
+  }
+
+  // Live timer for how long couple is holding hands
+  holdingStartTime = Date.now();
+  if (holdingTimerInterval) clearInterval(holdingTimerInterval);
+  holdingTimerInterval = setInterval(() => {
+    const sec = Math.floor((Date.now() - holdingStartTime) / 1000);
+    if (auraCounterBadge) auraCounterBadge.innerText = `Holding for ${sec}s ❤️`;
+  }, 1000);
+
+  // Spawn celebration hearts
+  spawnFloatingHearts(20, '💖');
+}
+
+function deactivateTogetherAura() {
+  if (touchTogetherOverlay) touchTogetherOverlay.classList.add('hidden');
+  if (holdingTimerInterval) {
+    clearInterval(holdingTimerInterval);
+    holdingTimerInterval = null;
+  }
+  if (touchTogetherBtn) {
+    touchTogetherBtn.classList.remove('waiting-partner');
+    if (holdHandsBtnText) holdHandsBtnText.innerText = 'Hold Hands';
+  }
+}
+
+/* =========================================================
+   FEATURE 2: 5-SECOND VOICE WHISPERS WITH AUDIO DUCKING
+   ========================================================= */
+function setupVoiceWhisperRecording() {
+  if (!whisperRecordBtn) return;
+
+  const onStart = (e) => {
+    e.preventDefault();
+    startWhisperRecording();
+  };
+
+  const onEnd = (e) => {
+    if (e && e.type.startsWith('touch')) e.preventDefault();
+    stopWhisperRecording();
+  };
+
+  whisperRecordBtn.addEventListener('mousedown', onStart);
+  whisperRecordBtn.addEventListener('touchstart', onStart, { passive: false });
+
+  window.addEventListener('mouseup', onEnd);
+  window.addEventListener('touchend', onEnd);
+}
+
+async function startWhisperRecording() {
+  if (isRecordingWhisper) return;
+
+  try {
+    const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+    audioChunks = [];
+    mediaRecorder = new MediaRecorder(stream);
+
+    mediaRecorder.ondataavailable = (e) => {
+      if (e.data && e.data.size > 0) {
+        audioChunks.push(e.data);
+      }
+    };
+
+    mediaRecorder.onstop = () => {
+      // Release microphone tracks
+      stream.getTracks().forEach(track => track.stop());
+      processRecordedWhisper();
+    };
+
+    mediaRecorder.start();
+    isRecordingWhisper = true;
+
+    if (whisperRecordBtn) whisperRecordBtn.classList.add('recording');
+    if (whisperPulseRing) whisperPulseRing.classList.remove('hidden');
+    if (whisperBtnText) whisperBtnText.innerText = 'Listening... (Release to send)';
+
+    // Safety timeout: auto-stop after 6 seconds
+    if (whisperRecordTimeout) clearTimeout(whisperRecordTimeout);
+    whisperRecordTimeout = setTimeout(() => {
+      if (isRecordingWhisper) {
+        stopWhisperRecording();
+      }
+    }, 6000);
+  } catch (err) {
+    console.error('Microphone access error:', err);
+    showToast('Microphone access needed for Voice Whispers 🎙️');
+  }
+}
+
+function stopWhisperRecording() {
+  if (!isRecordingWhisper) return;
+  isRecordingWhisper = false;
+
+  if (whisperRecordTimeout) clearTimeout(whisperRecordTimeout);
+  if (whisperRecordBtn) whisperRecordBtn.classList.remove('recording');
+  if (whisperPulseRing) whisperPulseRing.classList.add('hidden');
+  if (whisperBtnText) whisperBtnText.innerText = 'Hold to Whisper (5s)';
+
+  if (mediaRecorder && mediaRecorder.state !== 'inactive') {
+    mediaRecorder.stop();
+  }
+}
+
+function processRecordedWhisper() {
+  if (audioChunks.length === 0) return;
+  const audioBlob = new Blob(audioChunks, { type: 'audio/webm' });
+  const reader = new FileReader();
+
+  reader.onloadend = () => {
+    const base64Audio = reader.result;
+    if (socket && socket.connected) {
+      socket.emit('voice_whisper', {
+        audio: base64Audio,
+        duration: 5
+      });
+    }
+
+    // Append to local chat
+    appendVoiceWhisperToChat({
+      from: 'You',
+      audio: base64Audio,
+      isMine: true
+    });
+    showToast('Sent Voice Whisper to partner! 🎙️❤️');
+  };
+
+  reader.readAsDataURL(audioBlob);
+}
+
+function handleIncomingVoiceWhisper(data) {
+  if (!data || !data.audio) return;
+
+  // Append to chat so partner can replay anytime
+  appendVoiceWhisperToChat({
+    from: data.from,
+    audio: data.audio,
+    isMine: false
+  });
+
+  // Smoothly duck YouTube audio and play whisper!
+  duckAudioForVoice(data);
+}
+
+function duckAudioForVoice(data) {
+  if (isAudioDucking) return;
+  isAudioDucking = true;
+
+  // 1. Save original volume & duck YouTube to 18%
+  preDuckVolume = ytPlayer && ytPlayerReady && ytPlayer.getVolume ? ytPlayer.getVolume() : localVolume;
+  if (ytPlayer && ytPlayerReady && ytPlayer.setVolume) {
+    ytPlayer.setVolume(18);
+  }
+
+  // 2. Show floating incoming whisper banner
+  if (whisperSpeakerName) whisperSpeakerName.innerText = data.from || 'Partner';
+  if (whisperSpeakerAvatar) whisperSpeakerAvatar.innerText = data.avatar || '💖';
+  if (incomingWhisperBanner) incomingWhisperBanner.classList.remove('hidden');
+
+  // 3. Play incoming voice note
+  const audio = new Audio(data.audio);
+  const finishWhisper = () => {
+    if (!isAudioDucking) return;
+    isAudioDucking = false;
+    if (incomingWhisperBanner) incomingWhisperBanner.classList.add('hidden');
+    // Restore volume smoothly
+    if (ytPlayer && ytPlayerReady && ytPlayer.setVolume) {
+      ytPlayer.setVolume(preDuckVolume);
+    }
+  };
+
+  audio.onended = finishWhisper;
+  audio.onerror = finishWhisper;
+
+  // Fallback safety timeout
+  setTimeout(finishWhisper, 8000);
+
+  audio.play().catch(e => {
+    console.log('Audio autoplay prevented:', e);
+    finishWhisper();
+  });
+}
+
+function appendVoiceWhisperToChat({ from, audio, isMine }) {
+  if (!chatMessages) return;
+  const bubble = document.createElement('div');
+  bubble.className = `chat-bubble ${isMine ? 'mine' : 'theirs'}`;
+  bubble.innerHTML = `
+    <span class="bubble-sender">${from} (Voice Whisper 🎙️)</span>
+    <div class="audio-whisper-bubble">
+      <span>▶️ Play Whisper</span>
+      <span class="whisper-wave-mini">🎧</span>
+    </div>
+  `;
+
+  bubble.querySelector('.audio-whisper-bubble').addEventListener('click', () => {
+    duckAudioForVoice({ from, audio, avatar: '🎙️' });
+  });
+
+  chatMessages.appendChild(bubble);
+  chatMessages.scrollTop = chatMessages.scrollHeight;
+}
+
+// Master Features Initializer
+function initFeatures() {
+  setupHoldHandsEvents();
+  setupVoiceWhisperRecording();
+}
+

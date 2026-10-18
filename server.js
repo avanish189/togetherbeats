@@ -75,6 +75,22 @@ function getOrCreateRoom(roomId) {
           likedBy: 'TogetherBeats'
         }
       ],
+      cities: {
+        city1: 'Delhi',
+        city2: 'Punjab',
+        distanceKm: 450
+      },
+      songMemories: {
+        'BddP6PYo2gs': {
+          songId: 'BddP6PYo2gs',
+          note: 'Our special late night song ✨ Every lyric reminds me of you.',
+          author: 'TogetherBeats',
+          timestamp: Date.now() - 86400000
+        }
+      },
+      sleepTimer: null,
+      sleepTimerTimeout: null,
+      touchHoldingUsers: new Set(),
       users: {}
     };
   }
@@ -232,6 +248,9 @@ io.on('connection', (socket) => {
       currentTime: accurateTime,
       queue: room.queue,
       likedSongs: room.likedSongs || [],
+      cities: room.cities,
+      songMemories: room.songMemories || {},
+      sleepTimer: room.sleepTimer,
       users: Object.values(room.users)
     });
 
@@ -411,6 +430,148 @@ io.on('connection', (socket) => {
     });
   });
 
+  // Feature 1: Cities & Distance Update
+  socket.on('update_cities', ({ city1, city2, distanceKm }) => {
+    if (!userRoomId) return;
+    const room = getOrCreateRoom(userRoomId);
+    room.cities = {
+      city1: city1 || 'Delhi',
+      city2: city2 || 'Punjab',
+      distanceKm: Math.round(Number(distanceKm)) || 450
+    };
+    io.to(userRoomId).emit('cities_updated', {
+      cities: room.cities,
+      by: userName
+    });
+  });
+
+  // Feature 2: 5-Second Voice Whisper with Ducking
+  socket.on('voice_whisper', ({ audio, duration }) => {
+    if (!userRoomId || !audio) return;
+    const room = getOrCreateRoom(userRoomId);
+    const userAvatar = room.users[socket.id]?.avatar || '❤️';
+    socket.to(userRoomId).emit('voice_whisper_received', {
+      from: userName,
+      avatar: userAvatar,
+      audio,
+      duration: duration || 5,
+      timestamp: Date.now()
+    });
+  });
+
+  // Feature 4: Song Memories (Digital Polaroid Note)
+  socket.on('save_song_memory', ({ songId, note }) => {
+    if (!userRoomId || !songId) return;
+    const room = getOrCreateRoom(userRoomId);
+    if (!room.songMemories) room.songMemories = {};
+    room.songMemories[songId] = {
+      songId,
+      note: (note || '').trim(),
+      author: userName,
+      timestamp: Date.now()
+    };
+    io.to(userRoomId).emit('song_memory_saved', {
+      songId,
+      memory: room.songMemories[songId],
+      by: userName
+    });
+  });
+
+  socket.on('delete_song_memory', ({ songId }) => {
+    if (!userRoomId || !songId) return;
+    const room = getOrCreateRoom(userRoomId);
+    if (room.songMemories && room.songMemories[songId]) {
+      delete room.songMemories[songId];
+      io.to(userRoomId).emit('song_memory_deleted', {
+        songId,
+        by: userName
+      });
+    }
+  });
+
+  // Feature 5: Synchronized Sleep Timer (Together Fade-Out)
+  socket.on('set_sleep_timer', ({ minutes }) => {
+    if (!userRoomId) return;
+    const room = getOrCreateRoom(userRoomId);
+    const durationMinutes = Math.max(1, Number(minutes) || 15);
+    const endsAt = Date.now() + durationMinutes * 60 * 1000;
+
+    if (room.sleepTimerTimeout) {
+      clearTimeout(room.sleepTimerTimeout);
+      room.sleepTimerTimeout = null;
+    }
+
+    room.sleepTimer = {
+      endsAt,
+      durationMinutes,
+      setBy: userName
+    };
+
+    room.sleepTimerTimeout = setTimeout(() => {
+      room.playbackState = 'paused';
+      room.currentTime = calculateCurrentTime(room);
+      room.lastUpdated = Date.now();
+      room.sleepTimer = null;
+      room.sleepTimerTimeout = null;
+
+      io.to(userRoomId).emit('sleep_timer_fired', {
+        by: userName,
+        message: 'Sleep timer completed. Sweet dreams, sleep well! 🌙✨'
+      });
+      io.to(userRoomId).emit('remote_pause', {
+        time: room.currentTime,
+        by: 'Sleep Timer 🌙'
+      });
+    }, durationMinutes * 60 * 1000);
+
+    io.to(userRoomId).emit('sleep_timer_updated', {
+      sleepTimer: room.sleepTimer,
+      by: userName
+    });
+  });
+
+  socket.on('cancel_sleep_timer', () => {
+    if (!userRoomId) return;
+    const room = getOrCreateRoom(userRoomId);
+    if (room.sleepTimerTimeout) {
+      clearTimeout(room.sleepTimerTimeout);
+      room.sleepTimerTimeout = null;
+    }
+    room.sleepTimer = null;
+    io.to(userRoomId).emit('sleep_timer_cancelled', { by: userName });
+  });
+
+  // Feature 6: Touch Together (Hold Hands Haptic & Aura)
+  socket.on('touch_heart_down', () => {
+    if (!userRoomId) return;
+    const room = getOrCreateRoom(userRoomId);
+    if (!room.touchHoldingUsers) room.touchHoldingUsers = new Set();
+    room.touchHoldingUsers.add(socket.id);
+
+    if (room.touchHoldingUsers.size >= 2) {
+      io.to(userRoomId).emit('together_touch_active', {
+        activeCount: room.touchHoldingUsers.size
+      });
+    } else {
+      socket.to(userRoomId).emit('partner_touch_waiting', {
+        from: userName
+      });
+    }
+  });
+
+  socket.on('touch_heart_up', () => {
+    if (!userRoomId) return;
+    const room = getOrCreateRoom(userRoomId);
+    if (!room.touchHoldingUsers) room.touchHoldingUsers = new Set();
+    room.touchHoldingUsers.delete(socket.id);
+
+    if (room.touchHoldingUsers.size < 2) {
+      io.to(userRoomId).emit('together_touch_ended', {
+        from: userName
+      });
+    }
+  });
+
   // Romantic whispers / sweet chat
   socket.on('send_message', ({ message }) => {
     if (!userRoomId || !message) return;
@@ -439,15 +600,25 @@ io.on('connection', (socket) => {
 
   // Partner disconnects
   socket.on('disconnect', () => {
-    if (userRoomId && rooms[userRoomId] && rooms[userRoomId].users[socket.id]) {
-      const leftUser = rooms[userRoomId].users[socket.id];
-      delete rooms[userRoomId].users[socket.id];
+    if (userRoomId && rooms[userRoomId]) {
+      const room = rooms[userRoomId];
+      if (room.touchHoldingUsers) {
+        room.touchHoldingUsers.delete(socket.id);
+        if (room.touchHoldingUsers.size < 2) {
+          io.to(userRoomId).emit('together_touch_ended', { from: userName });
+        }
+      }
 
-      io.to(userRoomId).emit('user_left', {
-        user: leftUser,
-        users: Object.values(rooms[userRoomId].users)
-      });
-      io.to(userRoomId).emit('users_update', Object.values(rooms[userRoomId].users));
+      if (room.users[socket.id]) {
+        const leftUser = room.users[socket.id];
+        delete room.users[socket.id];
+
+        io.to(userRoomId).emit('user_left', {
+          user: leftUser,
+          users: Object.values(room.users)
+        });
+        io.to(userRoomId).emit('users_update', Object.values(room.users));
+      }
     }
   });
 });

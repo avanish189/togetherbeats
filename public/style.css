@@ -1682,7 +1682,653 @@ body {
     justify-content: center;
   }
 
+  .distance-pill {
+    justify-content: center;
+  }
+
   .header-tools {
     justify-content: center;
   }
+}
+
+/* =========================================================
+   FEATURE 1: LIVE DISTANCE & HEARTBEAT MAP
+   ========================================================= */
+.distance-pill {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: rgba(255, 255, 255, 0.9);
+  padding: 6px 14px;
+  border-radius: var(--radius-pill);
+  border: 1px solid var(--border-subtle);
+  box-shadow: 0 4px 14px rgba(224, 122, 111, 0.08);
+  cursor: pointer;
+  transition: var(--transition-smooth);
+}
+
+.distance-pill:hover {
+  transform: translateY(-1px);
+  background: #ffffff;
+  border-color: var(--accent-coral);
+  box-shadow: 0 6px 18px rgba(224, 122, 111, 0.16);
+}
+
+.city-tag {
+  font-size: 0.82rem;
+  font-weight: 700;
+  color: var(--text-primary);
+  letter-spacing: -0.2px;
+}
+
+.distance-heartbeat-wave {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  color: var(--accent-coral);
+}
+
+.heartbeat-svg {
+  width: 36px;
+  height: 14px;
+  stroke: var(--accent-coral);
+  stroke-dasharray: 60;
+  stroke-dashoffset: 0;
+  animation: pulseEcWave 2.2s ease-in-out infinite;
+}
+
+@keyframes pulseEcWave {
+  0% { stroke-dashoffset: 60; opacity: 0.6; }
+  50% { stroke-dashoffset: 0; opacity: 1; filter: drop-shadow(0 0 4px rgba(224, 122, 111, 0.6)); }
+  100% { stroke-dashoffset: -60; opacity: 0.6; }
+}
+
+.distance-text {
+  font-size: 0.76rem;
+  font-weight: 800;
+  color: var(--accent-coral);
+  background: var(--accent-blush);
+  padding: 2px 7px;
+  border-radius: 12px;
+}
+
+.pulse-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--accent-coral);
+  animation: heartbeatPing 1.8s ease-in-out infinite;
+}
+
+@keyframes heartbeatPing {
+  0%, 100% { transform: scale(0.85); opacity: 0.5; }
+  50% { transform: scale(1.3); opacity: 1; box-shadow: 0 0 8px var(--accent-coral); }
+}
+
+.live-heart-badge {
+  font-size: 0.9rem;
+  animation: heartThump 1.4s ease-in-out infinite;
+}
+
+@keyframes heartThump {
+  0%, 100% { transform: scale(1); }
+  25% { transform: scale(1.22); }
+  40% { transform: scale(0.98); }
+  60% { transform: scale(1.15); }
+}
+
+/* Header Sleep Pill */
+.header-timer-btn {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 12px;
+  border-radius: var(--radius-pill);
+  border: 1px solid #d4c5e2;
+  background: linear-gradient(135deg, #f5effe 0%, #fdf5f5 100%);
+  color: #6c4b8b;
+  font-size: 0.8rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition: var(--transition-smooth);
+}
+
+.header-timer-btn:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(108, 75, 139, 0.15);
+}
+
+.timer-badge-dot {
+  position: absolute;
+  top: 6px;
+  right: 6px;
+  width: 8px;
+  height: 8px;
+  background: var(--accent-coral);
+  border-radius: 50%;
+  box-shadow: 0 0 6px var(--accent-coral);
+}
+
+/* =========================================================
+   FEATURE 4: DIGITAL POLAROID NOTE OVERLAY
+   ========================================================= */
+.polaroid-overlay {
+  position: absolute;
+  top: 10px;
+  right: -8px;
+  width: 170px;
+  background: #ffffff;
+  padding: 12px 12px 10px;
+  border-radius: 8px;
+  box-shadow: 0 12px 28px rgba(0, 0, 0, 0.16), 0 2px 6px rgba(0, 0, 0, 0.08);
+  transform: rotate(-3deg);
+  transition: var(--transition-spring);
+  cursor: pointer;
+  z-index: 10;
+  border: 1px solid rgba(0, 0, 0, 0.04);
+}
+
+.polaroid-overlay:hover {
+  transform: rotate(0deg) scale(1.05);
+  box-shadow: 0 18px 36px rgba(0, 0, 0, 0.22);
+}
+
+.polaroid-tape {
+  position: absolute;
+  top: -8px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 48px;
+  height: 14px;
+  background: rgba(254, 235, 190, 0.75);
+  border: 1px dashed rgba(220, 180, 120, 0.5);
+  border-radius: 2px;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.06);
+}
+
+.polaroid-pin {
+  font-size: 0.85rem;
+  position: absolute;
+  top: -8px;
+  right: 10px;
+}
+
+.polaroid-quote {
+  font-size: 0.78rem;
+  line-height: 1.35;
+  color: #3b3137;
+  font-style: italic;
+  font-weight: 500;
+  margin-top: 4px;
+  margin-bottom: 6px;
+  display: -webkit-box;
+  -webkit-line-clamp: 3;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.polaroid-bottom {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  border-top: 1px dashed #f0e2df;
+  padding-top: 4px;
+}
+
+.polaroid-author {
+  font-size: 0.68rem;
+  font-weight: 700;
+  color: var(--accent-coral);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 110px;
+}
+
+.polaroid-heart {
+  font-size: 0.75rem;
+}
+
+/* Track Interactive Row */
+.track-interactive-row {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  margin-top: 8px;
+}
+
+.memory-tag-chip, .hold-hands-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 5px 12px;
+  border-radius: var(--radius-pill);
+  font-size: 0.78rem;
+  font-weight: 700;
+  cursor: pointer;
+  border: 1px solid var(--border-subtle);
+  transition: var(--transition-smooth);
+}
+
+.memory-tag-chip {
+  background: #ffffff;
+  color: var(--text-primary);
+}
+
+.memory-tag-chip:hover {
+  background: var(--accent-blush);
+  border-color: var(--accent-coral);
+  color: var(--accent-rose-deep);
+}
+
+.hold-hands-chip {
+  background: linear-gradient(135deg, #fff0ed 0%, #ffe9eb 100%);
+  border-color: #f7ced0;
+  color: var(--accent-rose-deep);
+}
+
+.hold-hands-chip:hover, .hold-hands-chip:active {
+  background: var(--accent-coral);
+  color: #ffffff;
+  transform: scale(1.04);
+  box-shadow: 0 4px 14px rgba(224, 122, 111, 0.35);
+}
+
+.hold-hands-chip.waiting-partner {
+  animation: gentlePulseBtn 1.2s infinite alternate;
+  border-color: var(--accent-coral);
+}
+
+@keyframes gentlePulseBtn {
+  0% { transform: scale(1); box-shadow: 0 0 0 rgba(224, 122, 111, 0); }
+  100% { transform: scale(1.06); box-shadow: 0 0 16px rgba(224, 122, 111, 0.45); }
+}
+
+/* =========================================================
+   FEATURE 2: 5-SECOND VOICE WHISPER DECK & FLOATING BANNER
+   ========================================================= */
+.whisper-deck {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  padding: 12px 16px;
+  background: linear-gradient(135deg, #ffffff 0%, #fff7f6 100%);
+  border-radius: var(--radius-row);
+  border: 1px solid var(--border-subtle);
+  margin-bottom: 12px;
+}
+
+.whisper-hold-btn {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  width: 100%;
+  padding: 10px 18px;
+  background: linear-gradient(135deg, var(--accent-coral) 0%, var(--accent-rose-deep) 100%);
+  color: #ffffff;
+  border: none;
+  border-radius: var(--radius-pill);
+  font-size: 0.88rem;
+  font-weight: 700;
+  cursor: pointer;
+  user-select: none;
+  -webkit-user-select: none;
+  box-shadow: 0 6px 18px rgba(224, 122, 111, 0.3);
+  transition: var(--transition-smooth);
+}
+
+.whisper-hold-btn:active, .whisper-hold-btn.recording {
+  transform: scale(0.97);
+  background: #cc2b2b;
+  box-shadow: 0 0 20px rgba(204, 43, 43, 0.6);
+}
+
+.mic-icon-circle {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.whisper-pulse {
+  position: absolute;
+  inset: -6px;
+  border-radius: var(--radius-pill);
+  border: 2px solid #ff4444;
+  animation: whisperPulsePing 1s infinite;
+  pointer-events: none;
+}
+
+@keyframes whisperPulsePing {
+  0% { transform: scale(1); opacity: 1; }
+  100% { transform: scale(1.15); opacity: 0; }
+}
+
+.whisper-subtip {
+  font-size: 0.74rem;
+  color: var(--text-muted);
+}
+
+/* Incoming Voice Whisper Banner */
+.incoming-whisper-banner {
+  position: fixed;
+  top: 24px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 10000;
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 12px 20px;
+  background: rgba(255, 255, 255, 0.94);
+  backdrop-filter: blur(25px);
+  -webkit-backdrop-filter: blur(25px);
+  border-radius: var(--radius-pill);
+  border: 1px solid var(--accent-coral);
+  box-shadow: 0 20px 50px rgba(224, 122, 111, 0.35), 0 4px 12px rgba(0,0,0,0.06);
+  animation: bannerSlideIn 0.35s cubic-bezier(0.34, 1.56, 0.64, 1);
+  max-width: 90vw;
+}
+
+@keyframes bannerSlideIn {
+  0% { transform: translate(-50%, -30px) scale(0.92); opacity: 0; }
+  100% { transform: translate(-50%, 0) scale(1); opacity: 1; }
+}
+
+.whisper-banner-speaker {
+  position: relative;
+  font-size: 1.6rem;
+}
+
+.whisper-live-indicator {
+  position: absolute;
+  bottom: 0;
+  right: -2px;
+  width: 10px;
+  height: 10px;
+  background: #22c55e;
+  border-radius: 50%;
+  border: 2px solid #ffffff;
+}
+
+.whisper-banner-heading {
+  font-size: 0.88rem;
+  font-weight: 700;
+  color: var(--text-primary);
+}
+
+.whisper-audio-bars {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  margin-top: 4px;
+  height: 16px;
+}
+
+.wbar {
+  width: 3.5px;
+  background: var(--accent-coral);
+  border-radius: 3px;
+  animation: wbarJump 0.8s ease-in-out infinite alternate;
+}
+
+.wbar:nth-child(1) { height: 6px; animation-delay: 0.1s; }
+.wbar:nth-child(2) { height: 14px; animation-delay: 0.25s; }
+.wbar:nth-child(3) { height: 10px; animation-delay: 0.4s; }
+.wbar:nth-child(4) { height: 16px; animation-delay: 0.15s; }
+.wbar:nth-child(5) { height: 8px; animation-delay: 0.3s; }
+
+@keyframes wbarJump {
+  0% { transform: scaleY(0.4); }
+  100% { transform: scaleY(1.3); }
+}
+
+.whisper-duck-hint {
+  font-size: 0.72rem;
+  color: var(--text-muted);
+}
+
+/* Audio Player bubble in chat */
+.audio-whisper-bubble {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  background: #fff3f1;
+  border: 1px solid #f8d5cf;
+  padding: 8px 14px;
+  border-radius: 16px;
+  margin-top: 6px;
+  cursor: pointer;
+}
+
+.audio-whisper-bubble:hover {
+  background: #fde8e5;
+}
+
+/* =========================================================
+   FEATURE 6: TOUCH TOGETHER (HOLD HANDS) ROMANTIC AURA
+   ========================================================= */
+.touch-together-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 10005;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: radial-gradient(circle at center, rgba(255, 192, 203, 0.94) 0%, rgba(244, 143, 163, 0.96) 60%, rgba(220, 100, 125, 0.98) 100%);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  animation: auraFadeIn 0.4s ease-out;
+  user-select: none;
+  -webkit-user-select: none;
+}
+
+@keyframes auraFadeIn {
+  0% { opacity: 0; transform: scale(0.96); }
+  100% { opacity: 1; transform: scale(1); }
+}
+
+.aura-radial-glow {
+  position: absolute;
+  width: 500px;
+  height: 500px;
+  border-radius: 50%;
+  background: radial-gradient(circle, rgba(255, 235, 200, 0.6) 0%, transparent 70%);
+  animation: auraGlowPulsing 2s infinite alternate;
+  pointer-events: none;
+}
+
+@keyframes auraGlowPulsing {
+  0% { transform: scale(0.9); opacity: 0.6; }
+  100% { transform: scale(1.2); opacity: 1; }
+}
+
+.aura-container {
+  position: relative;
+  z-index: 2;
+  text-align: center;
+  color: #ffffff;
+  padding: 30px;
+}
+
+.aura-intertwined-circle {
+  position: relative;
+  width: 110px;
+  height: 110px;
+  margin: 0 auto 20px;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.25);
+  border: 3px solid rgba(255, 255, 255, 0.8);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 0 40px rgba(255, 255, 255, 0.7);
+  animation: auraCirclePulse 1.6s ease-in-out infinite alternate;
+}
+
+@keyframes auraCirclePulse {
+  0% { transform: scale(1); box-shadow: 0 0 25px rgba(255, 255, 255, 0.5); }
+  100% { transform: scale(1.1); box-shadow: 0 0 50px rgba(255, 255, 255, 0.9); }
+}
+
+.aura-hands-emoji {
+  font-size: 3.2rem;
+}
+
+.aura-heart-pulse {
+  position: absolute;
+  bottom: -6px;
+  right: -6px;
+  font-size: 1.8rem;
+  animation: heartThump 1s infinite;
+}
+
+.aura-title {
+  font-size: 1.8rem;
+  font-weight: 800;
+  margin-bottom: 8px;
+  text-shadow: 0 2px 10px rgba(0, 0, 0, 0.15);
+}
+
+.aura-sub {
+  font-size: 1rem;
+  font-weight: 500;
+  opacity: 0.95;
+  margin-bottom: 20px;
+}
+
+.aura-counter {
+  display: inline-block;
+  padding: 8px 24px;
+  background: rgba(255, 255, 255, 0.28);
+  border-radius: 30px;
+  border: 1px solid rgba(255, 255, 255, 0.5);
+  font-size: 1.15rem;
+  font-weight: 800;
+  letter-spacing: 0.5px;
+  margin-bottom: 14px;
+}
+
+.aura-instruction {
+  font-size: 0.85rem;
+  opacity: 0.8;
+}
+
+/* =========================================================
+   FEATURE 1, 4, 5 MODAL DETAILS
+   ========================================================= */
+.preset-cities-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 10px;
+}
+
+.preset-tag {
+  font-size: 0.76rem;
+  padding: 5px 10px;
+  border-radius: 12px;
+  background: var(--card-bg-start);
+  border: 1px solid var(--border-subtle);
+  color: var(--text-primary);
+  cursor: pointer;
+  transition: var(--transition-smooth);
+}
+
+.preset-tag:hover {
+  background: var(--accent-blush);
+  border-color: var(--accent-coral);
+  color: var(--accent-rose-deep);
+}
+
+.quick-memory-suggestions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 10px;
+}
+
+.memory-chip {
+  font-size: 0.78rem;
+  padding: 5px 12px;
+  border-radius: 14px;
+  background: var(--card-bg-start);
+  border: 1px solid var(--border-subtle);
+  cursor: pointer;
+  transition: var(--transition-smooth);
+}
+
+.memory-chip:hover {
+  background: var(--accent-blush);
+  border-color: var(--accent-coral);
+  transform: translateY(-1px);
+}
+
+/* Sleep Timer Modal Options */
+.sleep-timer-options {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 12px;
+  margin: 16px 0;
+}
+
+.sleep-opt-btn {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 16px;
+  background: #ffffff;
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-row);
+  cursor: pointer;
+  transition: var(--transition-smooth);
+}
+
+.sleep-opt-btn:hover {
+  border-color: var(--accent-coral);
+  background: var(--accent-blush);
+  transform: translateY(-2px);
+  box-shadow: 0 8px 20px rgba(224, 122, 111, 0.15);
+}
+
+.sleep-time {
+  font-size: 1.5rem;
+  font-weight: 800;
+  color: var(--accent-coral);
+}
+
+.sleep-unit {
+  font-size: 0.76rem;
+  font-weight: 600;
+  color: var(--text-secondary);
+}
+
+.active-sleep-status-box {
+  background: #fdf5f5;
+  border: 1px solid #fedcd7;
+  padding: 12px;
+  border-radius: var(--radius-row);
+  text-align: center;
+  margin-bottom: 14px;
+}
+
+.btn-cancel-timer {
+  margin-top: 8px;
+  background: #ffffff;
+  border: 1px solid #cc5c50;
+  color: #cc5c50;
+  padding: 6px 14px;
+  border-radius: 14px;
+  font-size: 0.78rem;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.btn-cancel-timer:hover {
+  background: #cc5c50;
+  color: #ffffff;
 }
