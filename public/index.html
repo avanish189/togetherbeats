@@ -9,7 +9,15 @@
   <!-- Google Fonts: Plus Jakarta Sans for clean Apple/Dribbble aesthetic -->
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <!-- PWA & Mobile App Meta Tags -->
+  <meta name="theme-color" content="#fbf0ec">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="TogetherBeats">
+  <link rel="manifest" href="/manifest.json">
+  <link rel="icon" type="image/png" href="/favicon.png">
+  <link rel="apple-touch-icon" href="/apple-touch-icon.png">
   
   <link rel="stylesheet" href="style.css?v=2.5">
   <script src="/socket.io/socket.io.js"></script>
@@ -72,6 +80,15 @@
         <button class="header-timer-btn hidden" id="headerSleepPill" onclick="openSleepTimerModal()" title="Shared Sleep Timer">
           <span class="sleep-moon-icon">🌙</span>
           <span id="headerSleepText">30:00</span>
+        </button>
+
+        <button class="install-pwa-btn hidden" id="installAppBtn" onclick="triggerPwaInstall()" title="Install TogetherBeats App">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" width="16" height="16">
+            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+            <polyline points="7 10 12 15 17 10"></polyline>
+            <line x1="12" y1="15" x2="12" y2="3"></line>
+          </svg>
+          <span id="installBtnText">Install App</span>
         </button>
 
         <button class="share-btn" id="inviteBtn" onclick="copyInviteLink()" title="Copy Room Link">

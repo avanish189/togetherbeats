@@ -314,6 +314,52 @@ function copyInviteLink() {
   });
 }
 
+// --- PWA Installation & Service Worker ---
+let deferredPrompt = null;
+const installAppBtn = document.getElementById('installAppBtn');
+
+window.addEventListener('beforeinstallprompt', (e) => {
+  e.preventDefault();
+  deferredPrompt = e;
+  if (installAppBtn) {
+    installAppBtn.classList.remove('hidden');
+  }
+});
+
+function triggerPwaInstall() {
+  if (!deferredPrompt) {
+    showToast('To install: tap your browser menu (⋮ or Share) and choose "Add to Home screen" 📲');
+    return;
+  }
+  deferredPrompt.prompt();
+  deferredPrompt.userChoice.then((choiceResult) => {
+    if (choiceResult.outcome === 'accepted') {
+      showToast('TogetherBeats App installed! 🎉');
+      if (installAppBtn) installAppBtn.classList.add('hidden');
+    }
+    deferredPrompt = null;
+  });
+}
+
+window.addEventListener('appinstalled', () => {
+  showToast('TogetherBeats App installed! 🎉 Open it from your phone screen.');
+  if (installAppBtn) installAppBtn.classList.add('hidden');
+  deferredPrompt = null;
+});
+
+// Register Service Worker
+if ('serviceWorker' in navigator) {
+  window.addEventListener('load', () => {
+    navigator.serviceWorker.register('/sw.js')
+      .then((reg) => {
+        console.log('TogetherBeats Service Worker registered:', reg.scope);
+      })
+      .catch((err) => {
+        console.log('Service Worker registration failed:', err);
+      });
+  });
+}
+
 // --- Socket.IO Real-time Connection ---
 function initSocket() {
   socket = io();

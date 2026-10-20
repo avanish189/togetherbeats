@@ -1,0 +1,30 @@
+{
+  "name": "TogetherBeats - Listen to Music Together",
+  "short_name": "TogetherBeats",
+  "description": "Synchronized real-time music player for long-distance couples.",
+  "start_url": "/?source=pwa",
+  "display": "standalone",
+  "background_color": "#fbf0ec",
+  "theme_color": "#e07a6f",
+  "orientation": "portrait",
+  "scope": "/",
+  "categories": [
+    "music",
+    "entertainment",
+    "lifestyle"
+  ],
+  "icons": [
+    {
+      "src": "/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ]
+}

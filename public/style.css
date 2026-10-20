@@ -236,6 +236,32 @@ body {
   gap: 8px;
 }
 
+.install-pwa-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 7px 14px;
+  background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+  color: #fff;
+  border: none;
+  border-radius: 20px;
+  font-size: 0.8rem;
+  font-weight: 700;
+  cursor: pointer;
+  box-shadow: 0 4px 14px rgba(16, 185, 129, 0.3);
+  transition: var(--transition-smooth);
+  animation: pulseInstallBtn 3s infinite;
+}
+
+@keyframes pulseInstallBtn {
+  0%, 100% { transform: scale(1); box-shadow: 0 4px 14px rgba(16, 185, 129, 0.3); }
+  50% { transform: scale(1.05); box-shadow: 0 6px 20px rgba(16, 185, 129, 0.5); }
+}
+
+.install-pwa-btn:hover {
+  transform: translateY(-1px) scale(1.06);
+}
+
 .share-btn {
   display: inline-flex;
   align-items: center;
